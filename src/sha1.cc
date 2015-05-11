@@ -14,84 +14,114 @@
  *****************************************************************************/
 #include <cstring>
 #include <cinttypes>
-#include <cassert>
 #include <iostream>
+#include <fstream>
+#include <streambuf>
 
-// data: must reserve extra 128 bytes available
-// len: length in bytes
-// hash: at least 20 bytes available
-void sha1(unsigned char* data, size_t len, char* hash) {
-    constexpr size_t block_size = 64;
-
-    uint32_t h0 = 0x67452301, h1 = 0xEFCDAB89, h2 = 0x98BADCFE, h3 = 0x10325476, h4 = 0xC3D2E1F0;
-    
-    size_t ml = len * 8;
-
-    // append bit '1'
-    data[len++] = 0x80;
-
-    // append thus the resulting message length (in bits) is congruent to 448 (mod 512)
-    while (len % block_size != 56) data[len++] = 0x00;
-
-    // append length
-    data[len++] = ml >> 56, data[len++] = ml >> 48, 
-    data[len++] = ml >> 40, data[len++] = ml >> 32,
-    data[len++] = ml >> 24, data[len++] = ml >> 16,
-    data[len++] = ml >> 8, data[len++] = ml;
-
+void sha1_iteration(const uint8_t* data, uint32_t h[]) {
     // rotate functions
-    auto left_rotate = [](uint32_t x, const size_t i)->uint32_t { return x << i | x >> (sizeof(uint32_t) * 8 - i); };
+    auto left_rotate = [](uint32_t x, const size_t i)->uint32_t { 
+        return x << i | x >> (sizeof(uint32_t) * 8 - i); 
+    };
 
-    // for each trunk
-    for (size_t i = 0; i < len / block_size; ++i) {
-        // extend 16 32-bit words to 80 32-bit words
-        uint32_t word[80];
-        for (size_t j = 0; j < 16; ++j)
-            word[j] = data[i * block_size + 4 * j + 0] << 24 | 
-                      data[i * block_size + 4 * j + 1] << 16 | 
-                      data[i * block_size + 4 * j + 2] <<  8 | 
-                      data[i * block_size + 4 * j + 3];
+    // extend 16 32-bit words to 80 32-bit words
+    uint32_t word[80];
+    for (size_t j = 0; j < 16; ++j)
+        word[j] = data[4 * j + 0] << 24 | data[4 * j + 1] << 16 | 
+                  data[4 * j + 2] <<  8 | data[4 * j + 3];
 
-        for (size_t j = 16; j < 80; ++j) {
-            word[j] = left_rotate(word[j - 3] ^ word[j - 8] ^ word[j - 14] ^ word[j - 16], 1);
-        }
+    for (size_t j = 16; j < 80; ++j) 
+        word[j] = left_rotate(word[j - 3] ^ word[j - 8] ^ word[j - 14] ^ word[j - 16], 1);
 
 
-        uint32_t a = h0, b = h1, c = h2, d = h3, e = h4;
+    uint32_t a = h[0], b = h[1], c = h[2], d = h[3], e = h[4];
+    
+    // main loop
+    for (size_t j = 0; j < 80; ++j) {
+        int f, k;
+        if (j < 20) 
+            f = (b & c) | (~b & d), k = 0x5A827999;
+        else if (j < 40)
+            f = b ^ c ^ d, k = 0x6ED9EBA1;
+        else if (j < 60)
+            f = (b & c) | (b & d) | (c & d), k = 0x8F1BBCDC;
+        else 
+            f = b ^ c ^ d, k = 0xCA62C1D6;
         
-        // main loop
-        for (size_t j = 0; j < 80; ++j) {
-            int f, k;
-            if (j < 20) 
-                f = (b & c) | (~b & d), k = 0x5A827999;
-            else if (j < 40)
-                f = b ^ c ^ d, k = 0x6ED9EBA1;
-            else if (j < 60)
-                f = (b & c) | (b & d) | (c & d), k = 0x8F1BBCDC;
-            else 
-                f = b ^ c ^ d, k = 0xCA62C1D6;
-            
-            uint32_t tmp = left_rotate(a, 5) + f + e + k + word[j];
-            e = d, d = c, c = left_rotate(b, 30), b = a, a = tmp;
-        }
-
-        h0 += a, h1 += b, h2 += c, h3 += d, h4 += e;
+        uint32_t tmp = left_rotate(a, 5) + f + e + k + word[j];
+        e = d, d = c, c = left_rotate(b, 30), b = a, a = tmp;
     }
 
-    hash[0] = h0 >> 24, hash[1] = h0 >> 16, hash[2] = h0 >> 8, hash[3] = h0;
-    hash[4] = h1 >> 24, hash[5] = h1 >> 16, hash[6] = h1 >> 8, hash[7] = h1;
-    hash[8] = h2 >> 24, hash[9] = h2 >> 16, hash[10] = h2 >> 8, hash[11] = h2;
-    hash[12] = h3 >> 24, hash[13] = h3 >> 16, hash[14] = h3 >> 8, hash[15] = h3;
-    hash[16] = h4 >> 24, hash[17] = h4 >> 16, hash[18] = h4 >> 8, hash[19] = h4;
+    h[0] += a, h[1] += b, h[2] += c, h[3] += d, h[4] += e;
+}
+
+// len: in bytes
+// hash: at least 20 bytes available
+void sha1(const void* data, size_t len, char* hash) {
+    uint8_t* data_ = (uint8_t*)data;
+    constexpr size_t block_size = 64;
+
+    uint32_t h[5] = { 0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476, 0xC3D2E1F0 };
+
+    size_t ml = len * 8;
+
+    for (size_t i = 0; i < len / block_size; ++i)
+        sha1_iteration(data_ + i * block_size, h);
+
+    uint8_t buffer[block_size];
+    
+    memcpy(buffer, data_ + len / block_size * block_size, len % block_size);
+    len %= block_size;
+
+    // append bit '1'
+    buffer[len++] = 0x80;
+
+    if (len % block_size == 0) {
+        sha1_iteration(buffer, h);
+        len = 0;
+    }
+    
+    // append until the resulting message length (in bits) is congruent to 448 (mod 512)
+    while (len % block_size != 56) {
+        buffer[len++] = 0x00;
+        if (len % block_size == 0) {
+            sha1_iteration(buffer, h);
+            len = 0;
+        }
+    }
+
+    // append length
+    buffer[len++] = ml >> 56, buffer[len++] = ml >> 48, 
+    buffer[len++] = ml >> 40, buffer[len++] = ml >> 32,
+    buffer[len++] = ml >> 24, buffer[len++] = ml >> 16,
+    buffer[len++] = ml >>  8, buffer[len++] = ml;
+
+    sha1_iteration(buffer, h);
+    
+    for (size_t i = 0; i < 20; i += 4)
+        hash[i] = h[i / 4] >> 24, hash[i + 1] = h[i / 4] >> 16,
+        hash[i + 2] = h[i / 4] >> 8, hash[i + 3] = h[i / 4];
 }
 
 
-int main() {
+
+int main(int argc, char** argv) {
     uint8_t hash[20];
-        
-    unsigned char buffer[1024] = "abcd";
+
+    if (argc == 1) return 0;
+
+    std::ifstream fin(argv[1]);
+
+    fin.seekg(0, std::ios::end);
+    std::string buffer;
+    buffer.reserve(fin.tellg());
+    fin.seekg(0, std::ios::beg);
+
+    buffer.assign((std::istreambuf_iterator<char>(fin)),
+                   std::istreambuf_iterator<char>());
+
     
-    sha1(buffer, 4, (char*)hash);
+    sha1(buffer.data(), buffer.length(), (char*)hash);
 
     for (int i = 0; i < 20; ++i)
         printf("%02x", int(hash[i]) & 0xff);
