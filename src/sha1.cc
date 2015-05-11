@@ -87,16 +87,14 @@ void sha1(unsigned char* data, size_t len, char* hash) {
 
 
 int main() {
-
     uint8_t hash[20];
         
-    unsigned char* buffer = new unsigned char[1000000];
-    memset(buffer, 'a', 1000000);
-
-    sha1(buffer, 1000000, (char*)hash);
+    unsigned char buffer[1024] = "abcd";
+    
+    sha1(buffer, 4, (char*)hash);
 
     for (int i = 0; i < 20; ++i)
         printf("%02x", int(hash[i]) & 0xff);
     printf("\n");
-
+    
 }
