@@ -221,7 +221,6 @@ void des_cbc(const void* plain, const size_t length, const void* key, const void
     uint8_t* plain_ = (uint8_t*)plain;
     const uint8_t* key_ = (const uint8_t*)key;
     uint8_t* cipher_ = (uint8_t*)cipher;
-    uint8_t* IV_ = (uint8_t*)IV;
 
     uint8_t buffer[8];
     memcpy(buffer, IV, 8);
