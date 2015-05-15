@@ -10,7 +10,7 @@
  *  E-mail: hoojamis@gmail.com
  *  Date: May 15, 2015
  *  Time: 14:04:14
- *  Description: DES, Electronic Codebook Mode(ECB) mode
+ *  Description: DES, Electronic Codebook Mode(ECB) 
  *****************************************************************************/
 #include <cstring>
 #include <cinttypes>

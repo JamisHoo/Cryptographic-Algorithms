@@ -10,7 +10,7 @@
  *  E-mail: hoojamis@gmail.com
  *  Date: May 15, 2015
  *  Time: 21:09:32
- *  Description: DES, Cipher Block Chaining Mode(CBC) mode
+ *  Description: DES, Cipher Block Chaining Mode(CBC) 
  *****************************************************************************/
 #include <cstring>
 #include <cinttypes>
