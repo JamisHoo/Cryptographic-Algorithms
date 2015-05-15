@@ -4,7 +4,7 @@
  *  (See accompanying file LICENSE or copy at http://opensource.org/licenses/MIT)
  *  
  *  Project: 
- *  Filename: des_ecb.cc 
+ *  Filename: des_cbc.cc 
  *  Version: 1.0
  *  Author: Jamis Hoo
  *  E-mail: hoojamis@gmail.com
