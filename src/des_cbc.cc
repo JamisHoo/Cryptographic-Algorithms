@@ -31,17 +31,6 @@ inline bool getbit(const void* ptr, size_t i) {
     return (((uint8_t*)ptr)[i / 8] & ('\x01' << (7 - i % 8)))? 1: 0;
 }
 
-// debug
-void print(const void* ptr, size_t len, int group = 0) {
-    for (size_t i = 0; i < len; ++i) {
-        if (group && i % group == 0 && i) printf(" ");
-        if (((int8_t*)(ptr))[i / 8] & ('\x01' << (7 - i % 8)))
-            printf("1");
-        else
-            printf("0");
-    }
-    printf("\n");
-}
 
 // key is 64 bits
 std::array<std::array<uint8_t, 6>, 16> generateSubkeys(const uint8_t key[]) {
