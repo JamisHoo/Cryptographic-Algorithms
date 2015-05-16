@@ -179,35 +179,22 @@ void aes_ecb(const void* plain, size_t length, const void* key, void* cipher) {
     keyExpansion((uint8_t*)(key), keys);
 
     for (size_t i = 0; i < length / 16; ++i)
-        aesIteration((uint8_t*)(plain) + 16, (uint8_t*)(cipher) + 16, keys);
-
-    /*
-    for (size_t i = 0; i < 16; ++i)
-        printf("%02x ", ((uint8_t*)(cipher))[i]);
-    printf("\n");
-    */
-    
+        aesIteration((uint8_t*)(plain) + 16 * i, (uint8_t*)(cipher) + 16 * i, keys);
 }
 
 int main(int argc, char** argv) {
-    /*
-    uint8_t key[] = { 0x0f, 0x15, 0x71, 0xc9, 0x47, 0xd9, 0xe8, 0x59, 0x0c, 0xb7, 0xad, 0xd6, 0xaf, 0x7f, 0x67, 0x98 };
-    uint8_t plain[] = { 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66 }; 
-    uint8_t cipherx[16] = { 0 };
-    aes_ecb(plain, 0, key, cipherx); 
-    */
-
     if (argc == 1) return 0;
 
     std::ifstream fin(argv[1]);
 
     fin.seekg(0, std::ios::end);
     std::string buffer;
-    buffer.reserve(fin.tellg());
+    size_t len = fin.tellg();
+    buffer.reserve(len);
     fin.seekg(0, std::ios::beg);
 
-    if (buffer.length() % 8) {
-        printf("Length of plain text should be multiple of 8 bytes. \n");
+    if (len % 16) {
+        printf("Length of plain text should be multiple of 16 bytes. \n");
         return 0;
     }
 
@@ -216,13 +203,13 @@ int main(int argc, char** argv) {
 
     fin.close();
 
-    unsigned char key[8] = { 0 };
+    unsigned char key[16] = { 0 };
 
     if (argc == 3) {
         fin.open(argv[2]);
         fin.seekg(0, std::ios::beg);
         char buffer[2];
-        for (size_t i = 0; i < 8; ++i) {
+        for (size_t i = 0; i < 16; ++i) {
             fin.read(buffer, 2);
             key[i] = std::stoi(buffer, 0, 16);
         }
