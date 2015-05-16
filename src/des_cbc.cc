@@ -231,10 +231,11 @@ int main(int argc, char** argv) {
 
     fin.seekg(0, std::ios::end);
     std::string buffer;
-    buffer.reserve(fin.tellg());
+    size_t len = fin.tellg();
+    buffer.reserve(len);
     fin.seekg(0, std::ios::beg);
 
-    if (buffer.length() % 8) {
+    if (len % 8) {
         printf("Length of plain text should be multiple of 8 bytes. \n");
         return 0;
     }
