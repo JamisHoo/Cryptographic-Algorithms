@@ -10,7 +10,7 @@
  *  E-mail: hoojamis@gmail.com
  *  Date: May 16, 2015
  *  Time: 09:15:58
- *  Description: AES
+ *  Description: AES Electronic Codebook Mode(ECB) 
  *****************************************************************************/
 #include <cstdio>
 #include <iostream>
@@ -203,6 +203,7 @@ int main(int argc, char** argv) {
 
     fin.close();
 
+    // 128 bit key size
     unsigned char key[16] = { 0 };
 
     if (argc == 3) {
@@ -215,7 +216,6 @@ int main(int argc, char** argv) {
         }
         fin.close();
     }
-
 
     std::vector<char> cipher(buffer.length(), 0);
     aes_ecb(buffer.data(), buffer.length(), key, &cipher[0]);
