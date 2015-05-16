@@ -10,7 +10,7 @@
  *  E-mail: hoojamis@gmail.com
  *  Date: May 15, 2015
  *  Time: 21:09:32
- *  Description: DES, Cypher Feedback Block Mode(CFB) 
+ *  Description: DES, Cypher Feedback Block(in 8 bit) Mode(CFB) 
  *****************************************************************************/
 #include <cstring>
 #include <cinttypes>

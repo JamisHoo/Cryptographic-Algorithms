@@ -10,7 +10,7 @@
  *  E-mail: hoojamis@gmail.com
  *  Date: May 16, 2015
  *  Time: 15:51:03
- *  Description: AES, Output Feedback Block(in 8 bit) Mode (OFB)
+ *  Description: AES(128 bit), Output Feedback Block(in 8 bit) Mode (OFB)
  *****************************************************************************/
 #include <cstdio>
 #include <iostream>

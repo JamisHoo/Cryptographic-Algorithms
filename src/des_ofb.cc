@@ -10,7 +10,7 @@
  *  E-mail: hoojamis@gmail.com
  *  Date: May 15, 2015
  *  Time: 21:58:29
- *  Description: DES, Output Feedback Block Mode(CFB) 
+ *  Description: DES, Output Feedback Block(in 8 bit) Mode(CFB) 
  *****************************************************************************/
 #include <cstring>
 #include <cinttypes>

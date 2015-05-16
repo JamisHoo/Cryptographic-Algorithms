@@ -10,7 +10,7 @@
  *  E-mail: hoojamis@gmail.com
  *  Date: May 16, 2015
  *  Time: 15:51:03
- *  Description: AES Cipher Block Chaining Mode(CBC) 
+ *  Description: AES(128 bit) Cipher Block Chaining Mode(CBC) 
  *****************************************************************************/
 #include <cstdio>
 #include <iostream>

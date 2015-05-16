@@ -10,7 +10,7 @@
  *  E-mail: hoojamis@gmail.com
  *  Date: May 16, 2015
  *  Time: 09:15:58
- *  Description: AES Electronic Codebook Mode(ECB) 
+ *  Description: AES(128 bit) Electronic Codebook Mode(ECB) 
  *****************************************************************************/
 #include <cstdio>
 #include <iostream>
