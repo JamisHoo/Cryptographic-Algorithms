@@ -213,7 +213,7 @@ int main(int argc, char** argv) {
     if (argc == 3) {
         fin.open(argv[2]);
         fin.seekg(0, std::ios::beg);
-        char buffer[2];
+        char buffer[3] = { 0 };
         for (size_t i = 0; i < 16; ++i) {
             fin.read(buffer, 2);
             key[i] = std::stoi(buffer, 0, 16);
