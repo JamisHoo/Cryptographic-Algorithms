@@ -42,44 +42,87 @@ inline uint32_t tauTransformation(const uint32_t x) {
         0x18, 0xf0, 0x7d, 0xec, 0x3a, 0xdc, 0x4d, 0x20, 0x79, 0xee, 0x5f, 0x3e, 0xd7, 0xcb, 0x39, 0x48
     };
     uint32_t val;
-    val = Sbox[x >>  0 & 0xff] | Sbox[x >>  8 & 0xff] | 
-          Sbox[x >> 16 & 0xff] | Sbox[x >> 24 & 0xff];
+    val = Sbox[x >>  0 & 0xff] <<  0 | Sbox[x >>  8 & 0xff] << 8 | 
+          Sbox[x >> 16 & 0xff] << 16 | Sbox[x >> 24 & 0xff] << 24;
     return val;
 }
 
-inline uint32_t LTransformation(const uint32_t x) {
-    uint32_t big_endian = (x >>  0 & 0xff) << 24 |
-                          (x >>  8 & 0xff) << 16 |
-                          (x >> 16 & 0xff) <<  8 |
-                          (x >> 24 & 0xff) <<  0;
-    uint32_t val = big_endian ^ left_rotate(big_endian,  2) ^ 
-                                left_rotate(big_endian, 10) ^ 
-                                left_rotate(big_endian, 18) ^
-                                left_rotate(big_endian, 24);
-    uint32_t small_endian = (big_endian >>  0 & 0xff) << 24 |
-                            (big_endian >>  8 & 0xff) << 16 |
-                            (big_endian >> 16 & 0xff) <<  8 |
-                            (big_endian >> 24 & 0xff) <<  0;
-    return small_endian;
+inline uint32_t endianConvert(const uint32_t x) {
+    return (x << 24 & 0xff000000) | (x <<  8 & 0x00ff0000) |
+           (x >>  8 & 0x0000ff00) | (x >> 24 & 0x000000ff);
 }
+
+inline uint32_t LTransformation(const uint32_t x) {
+    return x                  ^ 
+           left_rotate(x,  2) ^ left_rotate(x, 10) ^ 
+           left_rotate(x, 18) ^ left_rotate(x, 24);
+}
+
+inline uint32_t L1Transformation(const uint32_t x) {
+    return x ^ left_rotate(x, 13) ^ left_rotate(x, 23);
+} 
 
 inline uint32_t TTransformation(const uint32_t x) {
     return LTransformation(tauTransformation(x));
 }
 
-void keyExpansion(const uint8_t key[], uint8_t keys[]) {
+inline uint32_t FFunction(const uint32_t x[], const uint32_t rkey) {
+    return x[0] ^ TTransformation(x[1] ^ x[2] ^ x[3] ^ rkey);
+}
 
+// key: 16 bytes
+// keys: 32 * 4 bytes
+void keyExpansion(const uint8_t key[], uint32_t keys[]) {
+    uint32_t mk[4];
+    mk[0] = key[ 0] << 24 | key[ 1] << 16 | key[ 2] << 8 | key[ 3] << 0;
+    mk[1] = key[ 4] << 24 | key[ 5] << 16 | key[ 6] << 8 | key[ 7] << 0;
+    mk[2] = key[ 8] << 24 | key[ 9] << 16 | key[10] << 8 | key[11] << 0;
+    mk[3] = key[12] << 24 | key[13] << 16 | key[14] << 8 | key[15] << 0;
+    constexpr uint32_t FK[4] = { 0xA3B1BAC6, 0x56AA3350, 0x677D9197, 0xB27022DC };
+    constexpr uint32_t CK[32] = { 
+        0x00070e15, 0x1c232a31, 0x383f464d, 0x545b6269,
+        0x70777e85, 0x8c939aa1, 0xa8afb6bd, 0xc4cbd2d9,
+        0xe0e7eef5, 0xfc030a11, 0x181f262d, 0x343b4249,
+        0x50575e65, 0x6c737a81, 0x888f969d, 0xa4abb2b9,
+        0xc0c7ced5, 0xdce3eaf1, 0xf8ff060d, 0x141b2229,
+        0x30373e45, 0x4c535a61, 0x686f767d, 0x848b9299,
+        0xa0a7aeb5, 0xbcc3cad1, 0xd8dfe6ed, 0xf4fb0209,
+        0x10171e25, 0x2c333a41, 0x484f565d, 0x646b7279
+    };
+    uint32_t k[36];
+    k[0] = mk[0] ^ FK[0], k[1] = mk[1] ^ FK[1], 
+    k[2] = mk[2] ^ FK[2], k[3] = mk[3] ^ FK[3];
 
+    for (size_t i = 0; i < 32; ++i)
+        keys[i] = k[i + 4] = k[i] ^ L1Transformation(tauTransformation(k[i + 1] ^ k[i + 2] ^ k[i + 3] ^ CK[i]));
+}
 
+void sm4Iteration(const uint32_t plain[], const uint32_t keys[], uint32_t cipher[]) {
+    uint32_t x[36];
+    x[0] = endianConvert(plain[0]);
+    x[1] = endianConvert(plain[1]);
+    x[2] = endianConvert(plain[2]);
+    x[3] = endianConvert(plain[3]);
+
+    for (size_t i = 0; i < 32; ++i)
+        x[i + 4] = FFunction(x + i, keys[i]);
+
+    cipher[0] = endianConvert(x[35]);
+    cipher[1] = endianConvert(x[34]);
+    cipher[2] = endianConvert(x[33]);
+    cipher[3] = endianConvert(x[32]);
 }
 
 void sm4_ecb(const void* plain, const size_t length, const void* key, void* cipher) {
-    uint8_t* plain_ = (uint8_t*)(plain);
-    uint8_t* cipher_ = (uint8_t*)(cipher);
+    const uint32_t* plain_ = (const uint32_t*)(plain);
+    uint32_t* cipher_ = (uint32_t*)(cipher);
     
-    uint8_t keys[128];
-    keyExpansion((uint8_t*)(key), keys);
+    uint32_t keys[32];
+    keyExpansion((const uint8_t*)(key), keys);
 
+    for (size_t i = 0; i < length / 16; ++i) {
+        sm4Iteration(plain_ + 4 * i, keys, cipher_ + 4 * i);
+    }
 }
 
 int main(int argc, char** argv) {
@@ -109,7 +152,7 @@ int main(int argc, char** argv) {
     if (argc == 3) {
         fin.open(argv[2]);
         fin.seekg(0, std::ios::beg);
-        char buffer[2];
+        char buffer[3] = { 0 };
         for (size_t i = 0; i < 16; ++i) {
             fin.read(buffer, 2);
             key[i] = std::stoi(buffer, 0, 16);
@@ -118,7 +161,7 @@ int main(int argc, char** argv) {
     }
 
     std::vector<char> cipher(buffer.length(), 0);
-    aes_ecb(buffer.data(), buffer.length(), key, &cipher[0]);
+    sm4_ecb(buffer.data(), buffer.length(), key, &cipher[0]);
 
     for (size_t i = 0; i < buffer.length(); ++i)
         printf("%02x", int(cipher[i]) & 0xff);
