@@ -32,25 +32,21 @@ void sm3_iteration(const uint8_t* data, uint32_t hi[]) {
     for (size_t i =  0; i < 16; ++i)
         W[i] = data[4 * i + 0] << 24 | data[4 * i + 1] << 16 |
                data[4 * i + 2] <<  8 | data[4 * i + 3] <<  0;
-    //for (int i = 0; i < 16; ++i) std::cout << std::hex << W[i] << ' '; std::cout << std::endl;
     for (size_t i = 16; i < 68; ++i) {
         uint32_t tmp = W[i - 16] ^ W[i - 9] ^ left_rotate(W[i - 3], 15);
         tmp = tmp ^ left_rotate(tmp, 15) ^ left_rotate(tmp, 23);
         W[i] = tmp ^ left_rotate(W[i - 13], 7) ^ W[i - 6];
     }
 
-    //for (int i = 0; i < 68; ++i) std::cout << std::hex << W[i] << ' ';std::cout << std::endl;
     
     uint32_t W1[64];
     for (size_t i = 0; i < 64; ++i)
         W1[i] = W[i] ^ W[i + 4];
-    //for (int i = 0; i < 64; ++i) std::cout << std::hex << W1[i] << ' '; std::cout << std::endl;
 
     uint32_t A = hi[0], B = hi[1], C = hi[2], D = hi[3], 
              E = hi[4], F = hi[5], G = hi[6], H = hi[7];
 
     for (size_t i = 0; i < 16; ++i) {
-        std::cout << std::dec << i << std::hex << ' ' << A << ' ' << B << ' ' << C << ' ' << D << ' ' << E << ' ' << F << ' ' << G << ' ' << H << std::endl;
         uint32_t SS1 = left_rotate(left_rotate(A, 12) + E + left_rotate(T[i], i), 7);
         uint32_t SS2 = SS1 ^ left_rotate(A, 12);
         uint32_t TT1 = (A ^ B ^ C) + D + SS2 + W1[i];
@@ -66,7 +62,6 @@ void sm3_iteration(const uint8_t* data, uint32_t hi[]) {
     }
 
     for (size_t i = 16; i < 64; ++i) {
-        std::cout << std::dec << i << std::hex << ' ' << A << ' ' << B << ' ' << C << ' ' << D << ' ' << E << ' ' << F << ' ' << G << ' ' << H << std::endl;
         uint32_t SS1 = left_rotate(left_rotate(A, 12) + E + left_rotate(T[i], i), 7);
         uint32_t SS2 = SS1 ^ left_rotate(A, 12);
         uint32_t TT1 = ((A & B) | (B & C) | (A & C)) + D + SS2 + W1[i];
