@@ -116,6 +116,7 @@ void sm4Iteration(const uint32_t plain[], const uint32_t keys[], uint32_t cipher
 void sm4_ofb(const void* plain, const size_t length, const void* key, const void* IV, void* cipher) {
     // I cannot guarantee this is correct.
     // The endian of SM4 is way too complicated
+    // nor can I find any documentation about SM4 OFB mode
     const uint8_t* plain_ = (const uint8_t*)(plain);
     uint8_t* cipher_ = (uint8_t*)(cipher);
 
