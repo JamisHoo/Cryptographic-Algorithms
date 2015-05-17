@@ -179,7 +179,6 @@ void aes_ctr(const void* plain, size_t length, const void* key, const void* IV, 
     keyExpansion((uint8_t*)(key), keys);
 
     uint8_t buffer[16];
-    memcpy(buffer, IV, 16);
 
     uint8_t counter[8] = { 0 };
     uint64_t* ctr = (uint64_t*)counter;
@@ -188,8 +187,8 @@ void aes_ctr(const void* plain, size_t length, const void* key, const void* IV, 
         // any lossless operation is ok
         // we use XOR here
         memcpy(buffer, IV, 16);
-        for (size_t j = 0; j < 16; ++j)
-            buffer[j] ^= counter[15 - j];
+        for (size_t j = 0; j < 8; ++j)
+            buffer[j] ^= counter[7 - j];
 
         aesIteration(buffer, (uint8_t*)(cipher) + i, keys);
 
