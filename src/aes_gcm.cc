@@ -11,13 +11,16 @@
  *  Date: May 17, 2015
  *  Time: 16:25:47
  *  Description: AES (128 bit) GCM
+ *               block size 16 bytes, PKCS7 padding
  *               IV: 12 bytes (explicitly given) concatenate with counter (4 bytes)
+ *               range of counter is [1, UINT_MAX]
  *****************************************************************************/
 #include <cstdio>
 #include <iostream>
 #include <fstream>
 #include <cinttypes>
 #include <vector>
+#include <cassert>
 
 inline uint8_t gmult(uint8_t a, uint8_t b) {
     uint8_t p = 0, hbs = 0;
@@ -336,16 +339,23 @@ int main(int argc, char** argv) {
     fin.seekg(0, std::ios::end);
     std::string buffer;
     size_t len = fin.tellg();
-    buffer.reserve(len);
     fin.seekg(0, std::ios::beg);
 
+    uint8_t pad = 0;
     if (len % 16) {
-        printf("Length of plain text should be multiple of 16 bytes. \n");
-        return 0;
+        pad = 16 - len % 16;
+        len = len / 16 * 16 + 16;
     }
+
+    buffer.reserve(len);
 
     buffer.assign((std::istreambuf_iterator<char>(fin)),
                    std::istreambuf_iterator<char>());
+    // PKCS7 padding
+    for (size_t i = 0; i < pad; ++i)
+        buffer += pad;
+
+    assert(buffer.length() == len);
 
     fin.close();
 
