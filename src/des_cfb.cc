@@ -257,7 +257,7 @@ int main(int argc, char** argv) {
     }
 
 
-    std::vector<char> cipher(buffer.length(), 0);
+    std::vector<char> cipher(buffer.length() + 8, 0);
     des_cfb(buffer.data(), buffer.length(), key, IV, &cipher[0]);
 
     for (size_t i = 0; i < buffer.length(); ++i)
