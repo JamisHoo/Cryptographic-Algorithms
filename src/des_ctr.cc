@@ -156,7 +156,7 @@ inline uint32_t f_function(const uint32_t rn_1, const std::array<uint8_t, 6>& ke
 }
 
 // plain is 64 bits, cipher is 64 bits
-void des_ofb_iteration(const uint8_t* plain, const std::array<std::array<uint8_t, 6>, 16>& key, uint8_t* cipher) {
+void des_ctr_iteration(const uint8_t* plain, const std::array<std::array<uint8_t, 6>, 16>& key, uint8_t* cipher) {
     constexpr size_t IP[64] = { 58, 50, 42, 34, 26, 18, 10,  2, 
                                 60, 52, 44, 36, 28, 20, 12,  4, 
                                 62, 54, 46, 38, 30, 22, 14,  6, 
@@ -206,7 +206,7 @@ void des_ofb_iteration(const uint8_t* plain, const std::array<std::array<uint8_t
 }
 
 
-void des_ofb(const void* plain, const size_t length, const void* key, const void* IV, void* cipher) {
+void des_ctr(const void* plain, const size_t length, const void* key, const void* IV, void* cipher) {
     uint8_t* plain_ = (uint8_t*)plain;
     const uint8_t* key_ = (const uint8_t*)key;
     uint8_t* cipher_ = (uint8_t*)cipher;
@@ -225,7 +225,7 @@ void des_ofb(const void* plain, const size_t length, const void* key, const void
         for (size_t j = 0; j < 8; ++j)
             buffer[j] ^= counter[7 - j];
 
-        des_ofb_iteration(buffer, subkeys, cipher_ + i);
+        des_ctr_iteration(buffer, subkeys, cipher_ + i);
         
         ++(*ctr);
 
@@ -266,7 +266,7 @@ int main(int argc, char** argv) {
 
 
     std::vector<char> cipher(buffer.length() + 8, 0);
-    des_ofb(buffer.data(), buffer.length(), key, IV, &cipher[0]);
+    des_ctr(buffer.data(), buffer.length(), key, IV, &cipher[0]);
 
     for (size_t i = 0; i < buffer.length(); ++i)
         printf("%02x", int(cipher[i]) & 0xff);
