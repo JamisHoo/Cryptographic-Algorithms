@@ -4,7 +4,7 @@
  *  (See accompanying file LICENSE or copy at http://opensource.org/licenses/MIT)
  *  
  *  Project: 
- *  Filename: sm4_ofb.cc 
+ *  Filename: sm4_ctr.cc 
  *  Version: 1.0
  *  Author: Jamis Hoo
  *  E-mail: hoojamis@gmail.com
@@ -113,7 +113,7 @@ void sm4Iteration(const uint32_t plain[], const uint32_t keys[], uint32_t cipher
     cipher[3] = endianConvert(x[32]);
 }
 
-void sm4_ofb(const void* plain, const size_t length, const void* key, const void* IV, void* cipher) {
+void sm4_ctr(const void* plain, const size_t length, const void* key, const void* IV, void* cipher) {
     // I cannot guarantee this is correct.
     // The endian of SM4 is way too complicated
     // nor can I find any documentation about SM4 CTR mode
@@ -124,7 +124,6 @@ void sm4_ofb(const void* plain, const size_t length, const void* key, const void
     keyExpansion((const uint8_t*)(key), keys);
 
     uint8_t buffer[16];
-    memcpy(buffer, IV, 16);
 
     uint8_t counter[8] = { 0 };
     uint64_t* ctr = (uint64_t*)counter;
@@ -133,8 +132,8 @@ void sm4_ofb(const void* plain, const size_t length, const void* key, const void
         // any lossless operation is ok
         // we use XOR here
         memcpy(buffer, IV, 16);
-        for (size_t j = 0; j < 16; ++j)
-            buffer[j] ^= counter[15 - j];
+        for (size_t j = 0; j < 8; ++j)
+            buffer[j] ^= counter[7 - j];
 
         sm4Iteration((const uint32_t*)buffer, keys, (uint32_t*)(cipher_ + i));
 
@@ -177,7 +176,7 @@ int main(int argc, char** argv) {
     }
 
     std::vector<char> cipher(buffer.length() + 16, 0);
-    sm4_ofb(buffer.data(), buffer.length(), key, IV, &cipher[0]);
+    sm4_ctr(buffer.data(), buffer.length(), key, IV, &cipher[0]);
 
     for (size_t i = 0; i < buffer.length(); ++i)
         printf("%02x", int(cipher[i]) & 0xff);
