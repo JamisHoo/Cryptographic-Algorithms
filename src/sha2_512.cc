@@ -24,17 +24,6 @@ void sha2_iteration(const uint8_t* data, uint64_t hi[]) {
         return x >> i | x << (sizeof(uint64_t) * 8 - i);
     };
 
-    /*
-    constexpr uint64_t k[64] = { 
-        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
-        0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
-        0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-        0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
-        0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
-        0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-        0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
-        0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
-        */
     constexpr uint64_t k[80] = { 
         0x428a2f98d728ae22, 0x7137449123ef65cd, 0xb5c0fbcfec4d3b2f, 0xe9b5dba58189dbbc, 0x3956c25bf348b538, 
         0x59f111f1b605d019, 0x923f82a4af194f9b, 0xab1c5ed5da6d8118, 0xd807aa98a3030242, 0x12835b0145706fbe, 
@@ -63,14 +52,6 @@ void sha2_iteration(const uint8_t* data, uint64_t hi[]) {
                   uint64_t(data[8 * j + 6]) <<  8 | uint64_t(data[8 * j + 7]) <<  0;
 
     for (size_t j = 16; j < 80; ++j) {
-        /*
-        uint32_t s0 = right_rotate(word[j - 15],  7) ^
-                      right_rotate(word[j - 15], 18) ^
-                      word[j - 15] >> 3;
-        uint32_t s1 = right_rotate(word[j - 2], 17) ^
-                      right_rotate(word[j - 2], 19) ^
-                      word[j - 2] >> 10;
-        */
         uint64_t s0 = right_rotate(word[j - 15], 1) ^
                       right_rotate(word[j - 15], 8) ^
                       word[j - 15] >> 7;
@@ -86,19 +67,6 @@ void sha2_iteration(const uint8_t* data, uint64_t hi[]) {
     
     // main loop
     for (size_t i = 0; i < 80; ++i) {
-        /*
-        uint32_t S1 = right_rotate(e, 6) ^ 
-                      right_rotate(e, 11) ^
-                      right_rotate(e, 25);
-        uint32_t ch = (e & f) ^ (~e & g);
-        uint32_t tmp1 = h + S1 + ch + k[i] + word[i];
-        uint32_t S0 = right_rotate(a, 2) ^
-                      right_rotate(a, 13) ^ 
-                      right_rotate(a, 22);
-        uint32_t maj = (a & b) ^ (a & c) ^ (b & c);
-        uint32_t tmp2 = S0 + maj;
-        */
-
         uint64_t S1 = right_rotate(e, 14) ^ 
                       right_rotate(e, 18) ^
                       right_rotate(e, 41);
@@ -124,7 +92,6 @@ void sha2(const void* data, size_t len, char* hash) {
     uint8_t* data_ = (uint8_t*)data;
     constexpr size_t block_size = 128;
 
-    // uint32_t h[8] = { 0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19 };
     uint64_t h[8] = { 0x6a09e667f3bcc908, 0xbb67ae8584caa73b, 
                       0x3c6ef372fe94f82b, 0xa54ff53a5f1d36f1, 
                       0x510e527fade682d1, 0x9b05688c2b3e6c1f, 
@@ -159,18 +126,26 @@ void sha2(const void* data, size_t len, char* hash) {
 
     // append length
 
+    
+    
     while (len % block_size) {
-        buffer[len] = ml >> (120 - (len - (block_size - 16)) * 8);
+        size_t shift_count = 120 - (len - block_size + 16) * 8;
+        if (shift_count > sizeof(size_t)) 
+            shift_count = sizeof(size_t);
+        buffer[len] = ml >> shift_count;
         ++len;
     }
+    
 
     // Code below may get a better performance on pipeline CPU than code above
     // because it has no branch instruction
-    // But size_t is 64 bits long for now, so code below will generate compiler warnings.
+    // But size_t is 64 bits long for now, so code below will lead to 
+    // undefined behavior.
     // When size_t is 128 bits long, replace code above with that below.
 
-    // Plus, anybody knows how to concisely switch these tow pieces of code at 
-    // compiling time please tells me. Thanks.
+    // Plus, Please tell me if anybody knows how to concisely switch these
+    // tow pieces of code according to width of size_t at compiling time. 
+    // Thanks.
 
     /*
     buffer[len++] = ml >> 120, buffer[len++] = ml >> 112, 
