@@ -4,13 +4,13 @@
  *  (See accompanying file LICENSE or copy at http://opensource.org/licenses/MIT)
  *  
  *  Project: 
- *  Filename: sha3.cc 
+ *  Filename: sha3_256.cc 
  *  Version: 1.0
  *  Author: Jamis Hoo
  *  E-mail: hoojamis@gmail.com
  *  Date: May 13, 2015
  *  Time: 22:49:20
- *  Description: SHA-3
+ *  Description: SHA-3 (256 bit)
  *****************************************************************************/
 #include <cstring>
 #include <cinttypes>

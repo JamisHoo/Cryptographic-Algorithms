@@ -4,13 +4,13 @@
  *  (See accompanying file LICENSE or copy at http://opensource.org/licenses/MIT)
  *  
  *  Project: 
- *  Filename: sha2.cc 
+ *  Filename: sha2_256.cc 
  *  Version: 1.0
  *  Author: Jamis Hoo
  *  E-mail: hoojamis@gmail.com
  *  Date: May 11, 2015
  *  Time: 22:13:27
- *  Description: SHA-2
+ *  Description: SHA-2 (256 bit)
  *****************************************************************************/
 #include <cstring>
 #include <cinttypes>
