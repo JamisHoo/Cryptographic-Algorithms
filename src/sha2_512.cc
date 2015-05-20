@@ -124,13 +124,15 @@ void sha2(const void* data, size_t len, char* hash) {
         }
     }
 
+
     // append length
     
     while (len % block_size) {
         size_t shift_count = 120 - (len - block_size + 16) * 8;
-        if (shift_count > sizeof(size_t) * 8) 
-            shift_count = sizeof(size_t) * 8;
-        buffer[len] = ml >> shift_count;
+        if (shift_count >= sizeof(size_t) * 8) 
+            buffer[len] = 0;
+        else 
+            buffer[len] = ml >> shift_count;
         ++len;
     }
 
