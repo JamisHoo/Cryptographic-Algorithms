@@ -10,7 +10,7 @@
  *  E-mail: hoojamis@gmail.com
  *  Date: May 16, 2015
  *  Time: 09:15:58
- *  Description: AES(128 bit) Electronic Codebook Mode(ECB) 
+ *  Description: AES(128, 192, 256 bit) Electronic Codebook Mode(ECB) 
  *****************************************************************************/
 #include <cstdio>
 #include <iostream>
@@ -53,8 +53,8 @@ constexpr uint8_t SubBytes[256] = {
    0x8C, 0xA1, 0x89, 0x0D, 0xBF, 0xE6, 0x42, 0x68, 0x41, 0x99, 0x2D, 0x0F, 0xB0, 0x54, 0xBB, 0x16
 };
 
-// key: initial key: 16 bytes
-// keys : 44 * 4 bytes
+// key: initial key: 16 or 24 or 32 bytes
+// keys : 4 * (6 + key_length / 4 + 1) * 4 bytes
 void keyExpansion(const uint8_t key[], uint8_t keys[], const size_t key_length) {
     constexpr uint8_t RCON[10][4] = {
         { 0x01, 0x00, 0x00, 0x00 },
@@ -104,12 +104,12 @@ void keyExpansion(const uint8_t key[], uint8_t keys[], const size_t key_length) 
 }
 
 
-void subBytes(uint8_t state[]) {
+inline void subBytes(uint8_t state[]) {
     for (size_t i = 0; i < 16; ++i)
         state[i] = SubBytes[state[i]];
 }
 
-void shiftRows(uint8_t state[]) {
+inline void shiftRows(uint8_t state[]) {
     uint8_t tmp = state[1];
     state[1] = state[5];
     state[5] = state[9];
@@ -130,7 +130,7 @@ void shiftRows(uint8_t state[]) {
     state[7] = tmp;
 }
 
-void mixColumns(uint8_t state[]) {
+inline void mixColumns(uint8_t state[]) {
     uint8_t tmp[4];
     for (size_t i = 0; i < 4; ++i) {
         tmp[0] = gmult(2, state[4 * i + 0]) ^ 
@@ -161,7 +161,7 @@ inline void addRoundKey(uint8_t state[], const uint8_t word[]) {
 
 // in: 16 bytes
 // out: 16 bytes
-// key: 44 * 4 bytes
+// key: 4 * (round + 1) * 4 bytes
 void aesIteration(const uint8_t in[], uint8_t out[], const uint8_t key[], size_t total_round) {
     uint8_t* state = out;
     memcpy(state, in, 16);
