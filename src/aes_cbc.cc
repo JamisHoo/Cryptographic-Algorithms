@@ -10,7 +10,7 @@
  *  E-mail: hoojamis@gmail.com
  *  Date: May 16, 2015
  *  Time: 15:51:03
- *  Description: AES(128 bit) Cipher Block Chaining Mode(CBC) 
+ *  Description: AES(128, 192, 256 bit) Cipher Block Chaining Mode(CBC) 
  *****************************************************************************/
 #include <cstdio>
 #include <iostream>
@@ -53,9 +53,9 @@ constexpr uint8_t SubBytes[256] = {
    0x8C, 0xA1, 0x89, 0x0D, 0xBF, 0xE6, 0x42, 0x68, 0x41, 0x99, 0x2D, 0x0F, 0xB0, 0x54, 0xBB, 0x16
 };
 
-// key: initial key: 16 bytes
-// keys : 44 * 4 bytes
-void keyExpansion(const uint8_t key[], uint8_t keys[]) {
+// key: initial key: 16 or 24 or 32 bytes
+// keys : 4 * (6 + key_length / 4 + 1) * 4 bytes
+void keyExpansion(const uint8_t key[], uint8_t keys[], const size_t key_length) {
     constexpr uint8_t RCON[10][4] = {
         { 0x01, 0x00, 0x00, 0x00 },
         { 0x02, 0x00, 0x00, 0x00 },
@@ -70,12 +70,12 @@ void keyExpansion(const uint8_t key[], uint8_t keys[]) {
     };
 
 
-    memcpy(keys, key, 4 * 4);
+    memcpy(keys, key, key_length);
 
-    for (size_t i = 4; i < 44; ++i) {
+    for (size_t i = key_length / 4; i < 4 * (6 + key_length / 4 + 1); ++i) {
         uint8_t tmp[4] = { keys[4 * (i - 1) + 0], keys[4 * (i - 1) + 1],
                            keys[4 * (i - 1) + 2], keys[4 * (i - 1) + 3] };
-        if (i % 4 == 0) {
+        if (i % (key_length / 4) == 0) {
             // rotate left one byte
             uint8_t temp = tmp[0];
             tmp[0] = tmp[1], tmp[1] = tmp[2], tmp[2] = tmp[3], tmp[3] = temp;
@@ -85,25 +85,31 @@ void keyExpansion(const uint8_t key[], uint8_t keys[]) {
             tmp[2] = SubBytes[tmp[2]];
             tmp[3] = SubBytes[tmp[3]];
             // XOR round constants
-            tmp[0] ^= RCON[i / 4 - 1][0], tmp[1] ^= RCON[i / 4 - 1][1], 
-            tmp[2] ^= RCON[i / 4 - 1][2], tmp[3] ^= RCON[i / 4 - 1][3];
+            tmp[0] ^= RCON[i / (key_length / 4) - 1][0], tmp[1] ^= RCON[i / (key_length / 4) - 1][1], 
+            tmp[2] ^= RCON[i / (key_length / 4) - 1][2], tmp[3] ^= RCON[i / (key_length / 4) - 1][3];
+        } else if (key_length > 24 && i % (key_length / 4) == 4) {
+            tmp[0] = SubBytes[tmp[0]];
+            tmp[1] = SubBytes[tmp[1]];
+            tmp[2] = SubBytes[tmp[2]];
+            tmp[3] = SubBytes[tmp[3]];
         }
         keys[4 * i + 0] = tmp[0], keys[4 * i + 1] = tmp[1],
         keys[4 * i + 2] = tmp[2], keys[4 * i + 3] = tmp[3];
-        keys[4 * i + 0] ^= keys[4 * (i - 4) + 0], 
-        keys[4 * i + 1] ^= keys[4 * (i - 4) + 1],
-        keys[4 * i + 2] ^= keys[4 * (i - 4) + 2],
-        keys[4 * i + 3] ^= keys[4 * (i - 4) + 3];
+        keys[4 * i + 0] ^= keys[4 * (i - key_length / 4) + 0], 
+        keys[4 * i + 1] ^= keys[4 * (i - key_length / 4) + 1],
+        keys[4 * i + 2] ^= keys[4 * (i - key_length / 4) + 2],
+        keys[4 * i + 3] ^= keys[4 * (i - key_length / 4) + 3];
     }
+
 }
 
 
-void subBytes(uint8_t state[]) {
+inline void subBytes(uint8_t state[]) {
     for (size_t i = 0; i < 16; ++i)
         state[i] = SubBytes[state[i]];
 }
 
-void shiftRows(uint8_t state[]) {
+inline void shiftRows(uint8_t state[]) {
     uint8_t tmp = state[1];
     state[1] = state[5];
     state[5] = state[9];
@@ -124,7 +130,7 @@ void shiftRows(uint8_t state[]) {
     state[7] = tmp;
 }
 
-void mixColumns(uint8_t state[]) {
+inline void mixColumns(uint8_t state[]) {
     uint8_t tmp[4];
     for (size_t i = 0; i < 4; ++i) {
         tmp[0] = gmult(2, state[4 * i + 0]) ^ 
@@ -155,15 +161,15 @@ inline void addRoundKey(uint8_t state[], const uint8_t word[]) {
 
 // in: 16 bytes
 // out: 16 bytes
-// key: 44 * 4 bytes
-void aesIteration(const uint8_t in[], uint8_t out[], const uint8_t key[]) {
+// key: 4 * (round + 1) * 4 bytes
+void aesIteration(const uint8_t in[], uint8_t out[], const uint8_t key[], size_t total_round) {
     uint8_t* state = out;
     memcpy(state, in, 16);
     
     // add round key
     addRoundKey(state, key);
 
-    for (size_t round = 0; round < 9; ++round) {
+    for (size_t round = 0; round < total_round - 1; ++round) {
         subBytes(state);
         shiftRows(state);
         mixColumns(state);
@@ -171,12 +177,13 @@ void aesIteration(const uint8_t in[], uint8_t out[], const uint8_t key[]) {
     }
     subBytes(state);
     shiftRows(state);
-    addRoundKey(state, key + 16 * 10);
+    addRoundKey(state, key + 16 * total_round);
 }
 
-void aes_cbc(const void* plain, size_t length, const void* key, const void* IV, void* cipher) {
-    uint8_t keys[44 * 4];
-    keyExpansion((uint8_t*)(key), keys);
+
+void aes_cbc(const void* plain, size_t length, const void* key, const size_t key_length, const void* IV, void* cipher) {
+    uint8_t keys[60 * 4];
+    keyExpansion((uint8_t*)(key), keys, key_length);
 
     uint8_t buffer[16];
     memcpy(buffer, IV, 16);
@@ -184,7 +191,7 @@ void aes_cbc(const void* plain, size_t length, const void* key, const void* IV, 
     for (size_t i = 0; i < length / 16; ++i) {
         for (size_t j = 0; j < 16; ++j) 
             buffer[j] ^= ((uint8_t*)(plain))[16 * i + j];
-        aesIteration(buffer, (uint8_t*)(cipher) + 16 * i, keys);
+        aesIteration(buffer, (uint8_t*)(cipher) + 16 * i, keys, 6 + key_length / 4);
         memcpy(buffer, (uint8_t*)(cipher) + 16 * i, 16);
     }
 }
@@ -210,23 +217,32 @@ int main(int argc, char** argv) {
 
     fin.close();
 
-    // 128 bit key size
-    unsigned char key[16] = { 0 };
+
+    // 128 bit or 192 bit or 256 bit key size
+    unsigned char key[32] = { 0 };
     unsigned char IV[16] = { 0 };
+    size_t key_length = 0;
 
     if (argc == 3) {
         fin.open(argv[2]);
         fin.seekg(0, std::ios::beg);
         char buffer[3] = { 0 };
-        for (size_t i = 0; i < 16; ++i) {
-            fin.read(buffer, 2);
+        for (size_t i = 0; i < 32; ++i) {
+            if (!fin.read(buffer, 2)) break;
             key[i] = std::stoi(buffer, 0, 16);
+            ++key_length;
         }
         fin.close();
     }
+    
+    if (key_length != 16 && key_length != 24 && key_length != 32) {
+        printf("Length of key should be 16 or 24 or 32 bytes. \n");
+        return 0;
+    }
+
 
     std::vector<char> cipher(buffer.length(), 0);
-    aes_cbc(buffer.data(), buffer.length(), key, IV, &cipher[0]);
+    aes_cbc(buffer.data(), buffer.length(), key, key_length, IV, &cipher[0]);
 
     for (size_t i = 0; i < buffer.length(); ++i)
         printf("%02x", int(cipher[i]) & 0xff);
