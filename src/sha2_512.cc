@@ -115,7 +115,7 @@ void sha2(const void* data, size_t len, char* hash) {
         len = 0;
     }
     
-    // append until the resulting message length (in bits) is congruent to 448 (mod 512)
+    // append until the resulting message length (in bits) is congruent to 896 (mod 1024)
     while (len % block_size != block_size - 16) {
         buffer[len++] = 0x00;
         if (len % block_size == 0) {
@@ -125,17 +125,15 @@ void sha2(const void* data, size_t len, char* hash) {
     }
 
     // append length
-
-    
     
     while (len % block_size) {
         size_t shift_count = 120 - (len - block_size + 16) * 8;
-        if (shift_count > sizeof(size_t)) 
-            shift_count = sizeof(size_t);
+        if (shift_count > sizeof(size_t) * 8) 
+            shift_count = sizeof(size_t) * 8;
         buffer[len] = ml >> shift_count;
         ++len;
     }
-    
+
 
     // Code below may get a better performance on pipeline CPU than code above
     // because it has no branch instruction
@@ -152,12 +150,12 @@ void sha2(const void* data, size_t len, char* hash) {
     buffer[len++] = ml >> 104, buffer[len++] = ml >>  96, 
     buffer[len++] = ml >>  88, buffer[len++] = ml >>  80, 
     buffer[len++] = ml >>  72, buffer[len++] = ml >>  64, 
-
     buffer[len++] = ml >>  56, buffer[len++] = ml >>  48, 
     buffer[len++] = ml >>  40, buffer[len++] = ml >>  32,
     buffer[len++] = ml >>  24, buffer[len++] = ml >>  16,
     buffer[len++] = ml >>   8, buffer[len++] = ml;
     */
+    
 
     sha2_iteration(buffer, h);
     
